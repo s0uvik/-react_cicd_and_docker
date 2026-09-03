@@ -1,8 +1,6 @@
+# Local development/verification only. Production uses docker-compose.prod.yml.
 services:
   frontend:
-    # On the VPS this pulls the image built by CI.
-    # Locally, `docker compose up --build` builds from source instead.
-    image: ${DOCKERHUB_USERNAME:-local}/react-app:${IMAGE_TAG:-latest}
     build: .
     container_name: react-app
     ports:

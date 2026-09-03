@@ -1,0 +1,16 @@
+# Copied to the VPS by CI. Pull-only: no build section, because the VM never
+# has the source tree. DOCKERHUB_USERNAME/IMAGE_TAG come from the .env file
+# the deploy step writes next to this file.
+services:
+  frontend:
+    image: ${DOCKERHUB_USERNAME}/react-app:${IMAGE_TAG:-latest}
+    container_name: react-app
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

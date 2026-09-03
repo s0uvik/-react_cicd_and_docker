@@ -56,23 +56,45 @@ jobs:
           cache-to: type=gha,mode=max
 
       #5. Deploy to VPS
-      # Requires secrets: VPS_HOST, VPS_USER, VPS_SSH_KEY (and optionally VPS_PORT,
-      # VPS_APP_DIR). Skipped automatically until VPS_HOST is set.
-      # - name: Deploy to VPS
-      #   if: ${{ secrets.VPS_HOST != '' }}
-      #   uses: appleboy/ssh-action@v1
-      #   with:
-      #     host: ${{ secrets.VPS_HOST }}
-      #     username: ${{ secrets.VPS_USER }}
-      #     key: ${{ secrets.VPS_SSH_KEY }}
-      #     port: ${{ secrets.VPS_PORT || 22 }}
-      #     envs: IMAGE_TAG,DOCKERHUB_USERNAME
-      #     script: |
-      #       set -euo pipefail
-      #       cd "${{ secrets.VPS_APP_DIR || '~/react-app' }}"
-      #       docker compose pull
-      #       docker compose up -d --remove-orphans
-      #       docker image prune -f
-      #   env:
-      #     IMAGE_TAG: ${{ github.sha }}
-      #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      # Required secrets: VPS_HOST, VPS_USER, VPS_PASSWORD.
+      # Optional secrets: VPS_PORT (default 22), VPS_APP_DIR (default ~/react-app).
+      # The whole deploy is skipped until VPS_HOST is set.
+      - name: Copy compose file to VPS
+        if: ${{ secrets.VPS_HOST != '' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: docker-compose.prod.yml
+          target: ${{ secrets.VPS_APP_DIR || 'react-app' }}
+
+      - name: Deploy to VPS
+        if: ${{ secrets.VPS_HOST != '' }}
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          envs: IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,APP_DIR
+          script: |
+            set -euo pipefail
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+
+            # Compose reads these from .env next to docker-compose.prod.yml.
+            printf 'DOCKERHUB_USERNAME=%s\nIMAGE_TAG=%s\n' \
+              "$DOCKERHUB_USERNAME" "$IMAGE_TAG" > .env
+
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker logout
+            docker image prune -f
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          APP_DIR: ${{ secrets.VPS_APP_DIR || 'react-app' }}
