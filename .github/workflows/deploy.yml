@@ -12,6 +12,11 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    # The `secrets` context is not available in a step-level `if`, so mirror the
+    # one we branch on into `env`, which is.
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+
     steps:
       #1. get the latest code
       - name: Checkout code
@@ -60,7 +65,7 @@ jobs:
       # Optional secrets: VPS_PORT (default 22), VPS_APP_DIR (default ~/react-app).
       # The whole deploy is skipped until VPS_HOST is set.
       - name: Copy compose file to VPS
-        if: ${{ secrets.VPS_HOST != '' }}
+        if: ${{ env.VPS_HOST != '' }}
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -71,7 +76,7 @@ jobs:
           target: ${{ secrets.VPS_APP_DIR || 'react-app' }}
 
       - name: Deploy to VPS
-        if: ${{ secrets.VPS_HOST != '' }}
+        if: ${{ env.VPS_HOST != '' }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
