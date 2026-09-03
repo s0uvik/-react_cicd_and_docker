@@ -3,3 +3,11 @@ dist/
 out/
 .tmp/
 .cache/
+.git/
+.github/
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+README.md
+npm-debug.log*

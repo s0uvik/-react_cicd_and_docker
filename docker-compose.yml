@@ -1,7 +1,16 @@
 services:
   frontend:
+    # On the VPS this pulls the image built by CI.
+    # Locally, `docker compose up --build` builds from source instead.
+    image: ${DOCKERHUB_USERNAME:-local}/react-app:${IMAGE_TAG:-latest}
     build: .
     container_name: react-app
     ports:
       - "8080:80"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
