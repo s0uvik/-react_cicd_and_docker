@@ -34,4 +34,3 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/react-app:latest docker push ${{ secrets.DOCKERHUB_USERNAME }}/react-app:${{ github.sha }}
 
       #5. Deploy to vps
-      - name: Deploy to server
